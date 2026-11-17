@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Employees{% endblock %}{% block crumb %}Employees{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Employees</h1><p>{{ total }} employees · {{ unassigned_count }} not yet in a team.</p></div>
+  <div class="actions">
+    <a class="btn btn-ghost" data-noload href="{% url 'people_export' %}">{% include "icons.html" with i="download" %}Export CSV</a>
+    <a class="btn btn-ghost" href="{% url 'teams' %}">{% include "icons.html" with i="tree" %}Org Tree</a>
+    <button class="btn btn-primary" data-open="addMember">{% include "icons.html" with i="plus" %}Add Employee</button>
+  </div>
+</div>
+
+<form method="post" action="{% url 'assign_team' %}" id="bulkForm">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+<div class="bulkbar" id="bulkbar"><b id="selCount">0 selected</b><span style="opacity:.6">·</span>Add to team
+  <select class="input" name="team"><option value="">— Remove from team —</option>{% for t in teams %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}</select>
+  <button class="btn btn-primary" style="height:34px">Apply</button></div>
+
+<div class="card">
+  <div class="filters">
+    <div class="search">{% include "icons.html" with i="search" %}<input class="input" form="filterForm" name="q" value="{{ f.q }}" placeholder="Search name, role, email…"></div>
+    <select class="input" form="filterForm" name="team" onchange="this.form.submit()"><option value="">All teams</option>{% for t in teams %}<option value="{{ t.pk }}" {% if f.team == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select>
+    <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" form="filterForm" name="unassigned" value="1" {% if f.unassigned %}checked{% endif %} onchange="this.form.submit()">Only without team</label>
+    {% if f.q or f.team or f.unassigned %}<a class="btn btn-ghost" href="{% url 'people' %}">Clear</a>{% endif %}
+  </div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th style="width:36px"><input type="checkbox" id="selAll"></th><th>Employee</th><th>Reports to</th><th>Team</th><th>Goals</th><th>Completed</th><th style="width:180px">Progress</th><th>Move to team</th><th></th></tr></thead>
+    <tbody>{% for r in rows %}<tr>
+      <td><input type="checkbox" name="member" value="{{ r.m.pk }}" class="sel"></td>
+      <td><a href="{{ r.m.get_absolute_url }}" class="who"><span class="avatar" {% if r.m.team %}style="background:{{ r.m.team.color }}"{% endif %}>{{ r.m.initials }}</span><div><b>{{ r.m.name }}</b><span>{{ r.m.role|default:"—" }}</span></div></a></td>
+      <td class="small">{% if r.m.manager %}<a href="{{ r.m.manager.get_absolute_url }}">{{ r.m.manager.name }}</a>{% else %}<span class="faint">—</span>{% endif %}</td>
+      <td>{% if r.m.team %}<a href="{{ r.m.team.get_absolute_url }}" class="team-tag"><i style="background:{{ r.m.team.color }}"></i>{{ r.m.team.name }}</a>{% else %}<span class="pill notstarted">No team</span>{% endif %}</td>
+      <td><button type="button" class="btn btn-ghost" style="height:30px;padding:0 10px" onclick="toggleGoals({{ r.m.pk }},this)">{{ r.count }} goal{{ r.count|pluralize }} <span class="chev">▾</span></button></td><td>{{ r.complete }}</td>
+      <td><div class="prog"><div class="bar"><i style="width:{{ r.progress }}%"></i></div><b>{{ r.progress }}%</b></div></td>
+      <td><select class="inline-sel" data-member="{{ r.m.pk }}" onchange="assignOne(this)"><option value="">— None —</option>{% for t in teams %}<option value="{{ t.pk }}" {% if r.m.team_id == t.pk %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></td>
+      <td style="white-space:nowrap"><a class="btn btn-ghost" style="height:32px;padding:0 10px" href="{% url 'member_edit' r.m.pk %}" title="Edit employee">{% include "icons.html" with i="edit" %}</a></td>
+    </tr>
+    <tr class="goal-row" id="goals-{{ r.m.pk }}" hidden><td></td><td colspan="8">
+      <div class="goal-panel">
+        <div class="gp-h"><b>Goals of {{ r.m.name }}</b><div class="actions">
+          <a class="btn btn-ghost" style="height:32px" href="{% url 'goal_create' %}?member={{ r.m.pk }}&next={{ request.get_full_path|urlencode }}">{% include "icons.html" with i="plus" %}New goal</a>
+          {% if free_goals %}<button type="button" class="btn btn-ghost" style="height:32px" onclick="openAssign({{ r.m.pk }},'{{ r.m.name|escapejs }}')">{% include "icons.html" with i="target" %}Assign existing</button>{% endif %}</div></div>
+        {% for g in r.m.goals.all %}{% if g.title %}
+        <div class="gp-row"><span class="gid">{{ g.goal_id }}</span><a class="goal-t" href="{{ g.get_absolute_url }}" style="flex:1;font-size:13px">{{ g.title }}</a>
+          <div class="prog" style="width:150px"><div class="bar {{ g.status_class }}"><i style="width:{{ g.progress }}%"></i></div><b>{{ g.progress }}%</b></div>
+          <span class="pill {{ g.status_class }}">{{ g.status }}</span>
+          <div class="gp-act">
+            <button type="button" title="Quick update" onclick='openQuick({{ g.pk }},"{{ g.goal_id }}","{{ g.status }}",["{{ g.q1_actual|default_if_none:"" }}","{{ g.q2_actual|default_if_none:"" }}","{{ g.q3_actual|default_if_none:"" }}","{{ g.q4_actual|default_if_none:"" }}"],["{{ g.q1_planned|default_if_none:"" }}","{{ g.q2_planned|default_if_none:"" }}","{{ g.q3_planned|default_if_none:"" }}","{{ g.q4_planned|default_if_none:"" }}"])'>{% include "icons.html" with i="trend" %}</button>
+            <a title="Edit goal" href="{% url 'goal_edit' g.pk %}?next={{ request.get_full_path|urlencode }}">{% include "icons.html" with i="edit" %}</a>
+            <button type="button" title="Remove from employee" onclick="openConfirm('{% url 'goal_unassign' g.pk %}','Remove {{ g.goal_id }} from {{ r.m.name|escapejs }}?','The goal is kept and can be assigned to someone else.','Remove')">{% include "icons.html" with i="back" %}</button>
+            <button type="button" title="Delete goal" class="danger" onclick="openConfirm('{% url 'goal_delete' g.pk %}','Delete {{ g.goal_id }}?','This permanently deletes the goal and its check-ins.','Delete')">{% include "icons.html" with i="trash" %}</button>
+          </div></div>
+        {% endif %}{% endfor %}
+        {% if not r.count %}<div class="small muted" style="padding:10px 0">No goals yet.</div>{% endif %}
+      </div></td></tr>{% empty %}<tr><td colspan="9"><div class="empty-state">No employees found.</div></td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+</form>
+<form id="filterForm" method="get"></form>
+
+<div class="modal" id="quickModal"><form method="post" class="dlg" id="quickForm">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <div class="dlg-h"><h3 id="quickTitle">Update progress</h3><button type="button" class="x" data-close>&times;</button></div>
+  <div class="dlg-b"><div class="field"><label>Variance / Status</label><select class="input" name="status">{% for s in statuses %}<option>{{ s }}</option>{% endfor %}</select></div>
+    <div class="qgrid">{% for q in "1234" %}<div class="field"><label>Q{{ q }} Actual % <span class="faint" id="plan{{ q }}"></span></label><input class="input" type="number" min="0" max="100" step="0.01" name="q{{ q }}_actual"></div>{% endfor %}</div></div>
+  <div class="dlg-f"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">Save progress</button></div>
+</form></div>
+
+<div class="modal" id="assignModal"><form method="post" action="{% url 'goal_assign' %}" class="dlg">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input type="hidden" name="member_id" id="assignMember">
+  <div class="dlg-h"><h3 id="assignTitle">Assign goals</h3><button type="button" class="x" data-close>&times;</button></div>
+  <div class="dlg-b">{% for g in free_goals %}<label class="list-row" style="cursor:pointer"><span><span class="gid">{{ g.goal_id }}</span> <span class="small">{{ g.title|truncatechars:80 }}</span></span><input type="checkbox" name="goal" value="{{ g.pk }}"></label>{% endfor %}</div>
+  <div class="dlg-f"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">Assign</button></div>
+</form></div>
+
+<div class="modal" id="confirmModal"><form method="post" class="dlg" id="confirmForm" style="max-width:440px">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <div class="dlg-b"><h3 id="confirmTitle" style="margin-bottom:6px"></h3><p class="muted" id="confirmText" style="margin:0"></p></div>
+  <div class="dlg-f"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-danger" id="confirmBtn">Confirm</button></div>
+</form></div>
+<form id="oneForm" method="post" action="{% url 'assign_team' %}">{% csrf_token %}<input type="hidden" name="member"><input type="hidden" name="team"><input type="hidden" name="next" value="{{ request.get_full_path }}"></form>
+
+<div class="modal {% if open_modal %}open{% endif %}" id="addMember"><form method="post" class="dlg">{% csrf_token %}
+  <div class="dlg-h"><h3>Add employee</h3><button type="button" class="x" data-close>&times;</button></div>
+  <div class="dlg-b"><div class="grid g2">
+    {% for f in form %}<div class="field"><label>{{ f.label }}</label>{{ f }}<div class="err">{{ f.errors|striptags }}</div>{% if f.help_text %}<div class="small faint">{{ f.help_text }}</div>{% endif %}</div>{% endfor %}
+  </div></div>
+  <div class="dlg-f"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">Add employee</button></div>
+</form></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const sels=[...document.querySelectorAll('.sel')], bar=document.getElementById('bulkbar');
+const upd=()=>{const n=sels.filter(s=>s.checked).length;bar.classList.toggle('show',n>0);selCount.textContent=n+' selected';};
+sels.forEach(s=>s.addEventListener('change',upd));
+selAll.addEventListener('change',e=>{sels.forEach(s=>s.checked=e.target.checked);upd();});
+const open=id=>document.getElementById(id).classList.add('open');
+function toggleGoals(id,btn){const r=document.getElementById('goals-'+id);r.hidden=!r.hidden;btn.querySelector('.chev').textContent=r.hidden?'▾':'▴';try{const s=new Set(JSON.parse(sessionStorage.getItem('openGoals')||'[]'));r.hidden?s.delete(id):s.add(id);sessionStorage.setItem('openGoals',JSON.stringify([...s]));}catch(e){}}
+try{JSON.parse(sessionStorage.getItem('openGoals')||'[]').forEach(id=>{const r=document.getElementById('goals-'+id);if(r){r.hidden=false;const b=r.previousElementSibling.querySelector('.chev');if(b)b.textContent='▴';}});}catch(e){}
+function openQuick(pk,gid,status,acts,plans){const f=document.getElementById('quickForm');f.action='/goals/'+pk+'/quick/';quickTitle.textContent='Update progress · '+gid;f.status.value=status;
+  acts.forEach((v,i)=>{f['q'+(i+1)+'_actual'].value=v;document.getElementById('plan'+(i+1)).textContent=plans[i]?'(plan '+parseFloat(plans[i])+'%)':'';});open('quickModal');}
+function openAssign(pk,name){assignMember.value=pk;assignTitle.textContent='Assign goals to '+name;open('assignModal');}
+function openConfirm(url,title,text,btn){confirmForm.action=url;confirmTitle.textContent=title;confirmText.textContent=text;confirmBtn.textContent=btn;open('confirmModal');}
+function assignOne(el){const f=document.getElementById('oneForm');f.member.value=el.dataset.member;f.team.value=el.value;f.requestSubmit();}
+</script>
+{% endblock %}

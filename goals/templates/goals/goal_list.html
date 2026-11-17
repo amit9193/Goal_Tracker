@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% load goal_tags %}
+{% block title %}Goals Tracker{% endblock %}{% block crumb %}Goals Tracker{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Goals Tracker</h1><p>{{ goals|length }} goal{{ goals|length|pluralize }} · quarterly planned target, actual achieved and achievement %.</p></div>
+  <div class="actions"><a class="btn btn-ghost" href="{% url 'import' %}">{% include "icons.html" with i="upload" %}Import</a><a class="btn btn-ghost" data-noload href="{% url 'export' %}">{% include "icons.html" with i="download" %}Export</a><a class="btn btn-primary" href="{% url 'goal_create' %}">{% include "icons.html" with i="plus" %}New Goal</a></div>
+</div>
+<div class="card">
+  <form class="filters" method="get">
+    <div class="search">{% include "icons.html" with i="search" %}<input class="input" name="q" value="{{ f.q }}" placeholder="Search goal ID, goal, member, role…"></div>
+    <select class="input" name="member" onchange="this.form.submit()"><option value="">All team members</option>{% for m in members %}<option value="{{ m.pk }}" {% if f.member == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.name }}</option>{% endfor %}</select>
+    <select class="input" name="team" onchange="this.form.submit()"><option value="">All teams</option>{% for t in teams %}<option value="{{ t.pk }}" {% if f.team == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select>
+    <select class="input" name="status" onchange="this.form.submit()"><option value="">All statuses</option>{% for s in statuses %}<option {% if f.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="show" value="all" {% if f.show == 'all' %}checked{% endif %} onchange="this.form.submit()">Show unassigned slots</label>
+    {% if f.q or f.member or f.status or f.team %}<a class="btn btn-ghost" href="{% url 'goal_list' %}">Clear</a>{% endif %}
+  </form>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Goal ID</th><th>Project Lead</th><th>Team Member</th><th>Goal</th><th>Start → Target</th>
+      <th class="qcell">Q1</th><th class="qcell">Q2</th><th class="qcell">Q3</th><th class="qcell">Q4</th><th>Progress</th><th>Status</th></tr></thead>
+    <tbody>{% for g in goals %}
+      <tr class="{% if not g.is_defined %}empty{% endif %}" onclick="location='{{ g.get_absolute_url }}'" style="cursor:pointer">
+        <td><span class="gid">{{ g.goal_id }}</span></td>
+        <td class="small" style="white-space:nowrap">{{ g.project_lead|default:"—" }}</td>
+        <td>{% if g.member %}<div class="who"><span class="avatar">{{ g.member.initials }}</span><div><b>{{ g.member.name }}</b><span>{{ g.role }}</span></div></div>{% else %}<span class="faint">Unassigned</span>{% endif %}</td>
+        <td><div class="goal-t">{{ g.title|default:"— Goal not yet defined —" }}</div></td>
+        <td class="small" style="white-space:nowrap">{{ g.start_date|date:"d M y"|default:"—" }}<br><span class="faint">{{ g.target_date|date:"d M y"|default:"—" }}</span></td>
+        {% for q in g.quarters %}<td class="qcell"><b>{{ q.actual|pct }}</b><span>of {{ q.planned|pct }}</span></td>{% endfor %}
+        <td><div class="prog"><div class="bar {{ g.status_class }}"><i style="width:{{ g.progress }}%"></i></div><b>{{ g.progress }}%</b></div></td>
+        <td><span class="pill {{ g.status_class }}">{{ g.status }}</span></td>
+      </tr>
+    {% empty %}<tr><td colspan="11"><div class="empty-state">No goals match your filters.</div></td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

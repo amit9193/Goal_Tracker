@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Import Excel{% endblock %}{% block crumb %}Import Excel{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Import Goal Tracker workbook</h1><p>Upload an .xlsx in the Goal Tracker layout. Existing Goal IDs are updated; new ones are created.</p></div></div>
+<div class="grid g2">
+  <form method="post" enctype="multipart/form-data" class="card card-b">{% csrf_token %}
+    <div class="field"><label>Workbook (.xlsx)</label>{{ form.file }}</div>
+    <button class="btn btn-primary">{% include "icons.html" with i="upload" %}Import</button>
+  </form>
+  <div class="card card-b"><h3 style="font-size:15px;margin-bottom:10px">Expected columns (sheet “Goals Tracker”)</h3>
+    <p class="small muted mono" style="line-height:1.8"><b>Project Lead</b> · Goal ID · Team Member · Role · Goal · Goal Description · Success Measure / KPI · Start Date · Target Date · Q1–Q4 Planned Target · Q1–Q4 Actual Achieved · Q1–Q4 % Achievement · Variance / Status</p>
+    <p class="small muted">Project Lead sets each Team Member's manager (reporting line). Optional “Hierarchy” sheet (Employee · Role · Reports To · Team) is also applied. Old files without Project Lead still import.</p>
+    <p class="small muted">Targets can be fractions (0.25) or percentages (25).</p></div>
+</div>
+{% endblock %}

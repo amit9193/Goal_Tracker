@@ -1,0 +1,72 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}KPI Tracker{% endblock %} · Goal Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'goals/app.css' %}">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%230e9f6e'/><path d='M4 19l5-7 3.5 4 2.5-3 4 6z' fill='white'/></svg>">
+{% block head %}{% endblock %}
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+<div id="topbar-loader"></div>
+<div id="page-loader"><div class="loader-card"><div class="spinner"></div><span>Loading…</span></div></div>
+{% block body %}
+{% with u=request.resolver_match.url_name %}
+<div class="shell">
+  <aside class="side">
+    <a href="{% url 'landing' %}" class="logo"><span class="logo-mark">{% include "icons.html" with i="logo" %}</span>KPI Tracker</a>
+    <div class="nav-label">Workspace</div>
+    <nav class="nav">
+      <a href="{% url 'dashboard' %}" class="{% if u == 'dashboard' %}on{% endif %}">{% include "icons.html" with i="dash" %}Dashboard</a>
+      <a href="{% url 'goal_list' %}" class="{% if u == 'goal_list' or u == 'goal_detail' or u == 'goal_edit' %}on{% endif %}">{% include "icons.html" with i="target" %}Goals Tracker</a>
+      <a href="{% url 'goal_create' %}" class="{% if u == 'goal_create' %}on{% endif %}">{% include "icons.html" with i="plus" %}New Goal</a>
+    </nav>
+    <div class="nav-label">Organisation</div>
+    <nav class="nav">
+      <a href="{% url 'people' %}" class="{% if u == 'people' or u == 'member_detail' or u == 'member_edit' %}on{% endif %}">{% include "icons.html" with i="team" %}Employees</a>
+      <a href="{% url 'teams' %}" class="{% if u == 'teams' or u == 'team_detail' or u == 'team_edit' %}on{% endif %}">{% include "icons.html" with i="layers" %}Teams</a>
+      <a href="{% url 'org' %}" class="{% if u == 'org' %}on{% endif %}">{% include "icons.html" with i="tree" %}Org Hierarchy</a>
+    </nav>
+    <div class="nav-label">Data</div>
+    <nav class="nav">
+      {% if user.is_superuser %}<a href="{% url 'import' %}" class="{% if u == 'import' %}on{% endif %}">{% include "icons.html" with i="upload" %}Import Excel</a>{% endif %}
+      <a href="{% url 'export' %}" data-noload>{% include "icons.html" with i="download" %}Export Excel</a>
+      {% if user.is_staff %}<a href="/admin/">{% include "icons.html" with i="shield" %}Admin</a>{% endif %}
+    </nav>
+    <div class="side-foot">
+      <span class="avatar">{{ user.username|first|upper }}</span>
+      <div style="flex:1;min-width:0"><div style="color:#fff;font-weight:600;font-size:13px">{{ user.get_full_name|default:user.username }}</div>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>Sign out</button></form></div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><div class="crumb">KPI Tracker / <b>{% block crumb %}{% endblock %}</b></div>
+      <div class="actions"><span class="role-badge {% if user.is_superuser %}su{% elif user_role == 'Employee' %}emp{% endif %}">{{ user_role }}{% if me and not user.is_superuser %} · {{ me.name }}{% endif %}</span><span class="small muted">FY 2026–27 · {% now "d M Y" %}</span></div></div>
+    <div class="content">
+      {% if messages %}<div class="msgs">{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}</div>{% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endwith %}
+{% endblock %}
+<script>
+(function(){
+  const bar=document.getElementById('topbar-loader'), ov=document.getElementById('page-loader');
+  let t; const start=()=>{bar.style.opacity=1;bar.style.width='30%';t=setInterval(()=>{const w=parseFloat(bar.style.width);if(w<90)bar.style.width=(w+(90-w)*.1)+'%';},200);setTimeout(()=>ov.classList.add('show'),450);setTimeout(done,15000);};
+  const done=()=>{clearInterval(t);bar.style.width='100%';setTimeout(()=>{bar.style.opacity=0;bar.style.width=0;},300);ov.classList.remove('show');};
+  bar.style.width='60%';window.addEventListener('load',done);window.addEventListener('pageshow',done);
+  document.addEventListener('click',e=>{if(e.defaultPrevented||e.target.closest('button,[data-open],[data-close],input,select,label'))return;const a=e.target.closest('a[href]');if(!a||a.hasAttribute('data-noload')||a.target||e.ctrlKey||e.metaKey)return;
+    const h=a.getAttribute('href');if(h.startsWith('#')||h.startsWith('javascript')||a.hostname!==location.hostname)return;start();});
+  document.addEventListener('submit',e=>{const f=e.target;if(f.hasAttribute('data-noload'))return;const b=f.querySelector('button:not([type=button])');if(b)b.classList.add('loading');if(f.method.toLowerCase()==='get'||!f.hasAttribute('data-quiet'))start();});
+  // modals
+  document.addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o){document.getElementById(o.dataset.open).classList.add('open');}
+    if(e.target.matches('.modal')||e.target.closest('[data-close]'))e.target.closest('.modal').classList.remove('open');});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'));});
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

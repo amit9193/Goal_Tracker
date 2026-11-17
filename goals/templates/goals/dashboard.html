@@ -1,0 +1,57 @@
+{% extends "base.html" %}{% load goal_tags %}
+{% block title %}Dashboard{% endblock %}{% block crumb %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Goal Performance Overview</h1><p>Team-wide view of goals, quarterly targets and achievement.</p></div>
+  <div class="actions"><form method="get"><select class="input" name="team" onchange="this.form.submit()" style="width:200px"><option value="">All teams</option>{% for t in teams %}<option value="{{ t.pk }}" {% if team_id == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></form><a class="btn btn-ghost" data-noload href="{% url 'export' %}">{% include "icons.html" with i="download" %}Export</a><a class="btn btn-primary" href="{% url 'goal_create' %}">{% include "icons.html" with i="plus" %}New Goal</a></div>
+</div>
+
+<div class="grid g4" style="margin-bottom:18px">
+  <div class="card kpi"><div class="lbl"><span class="ico ink">{% include "icons.html" with i="target" %}</span>Total Goals</div><div class="val">{{ total }}</div><div class="sub">across {{ members|length }} team members</div></div>
+  <div class="card kpi"><div class="lbl"><span class="ico green">{% include "icons.html" with i="check" %}</span>Completed</div><div class="val">{{ complete }}</div><div class="sub">{% widthratio complete total|default:1 100 %}% of all goals</div></div>
+  <div class="card kpi"><div class="lbl"><span class="ico blue">{% include "icons.html" with i="trend" %}</span>On Track</div><div class="val">{{ ontrack }}</div><div class="sub">progressing to plan</div></div>
+  <div class="card kpi"><div class="lbl"><span class="ico amber">{% include "icons.html" with i="alert" %}</span>Needs Attention</div><div class="val">{{ attention }}</div><div class="sub">marked Slow or At Risk</div></div>
+</div>
+
+<div class="grid g-7-5" style="margin-bottom:18px">
+  <div class="card"><div class="card-h"><h3>Quarterly Planned vs Actual</h3><span class="small muted">Average % across goals</span></div>
+    <div class="card-b chart-box"><div class="skeleton"></div><canvas id="qChart" height="120"></canvas></div></div>
+  <div class="card"><div class="card-h"><h3>Status Distribution</h3><span class="small muted">{{ total }} goals</span></div>
+    <div class="card-b" style="display:flex;align-items:center;justify-content:center"><div class="chart-box" style="max-width:300px;width:100%"><div class="skeleton" style="border-radius:50%"></div><canvas id="sChart"></canvas></div></div></div>
+</div>
+
+<div class="grid g-7-5">
+  <div class="card"><div class="card-h"><h3>Team Progress</h3><a class="small" style="color:var(--brand);font-weight:600" href="{% url 'people' %}">View employees →</a></div>
+    <div class="tbl-wrap" style="margin-top:12px"><table class="tbl">
+      <thead><tr><th>Team Member</th><th>Goals</th><th>Done</th><th style="width:40%">Achieved vs Planned</th></tr></thead>
+      <tbody>{% for x in members %}{% if x.count %}<tr>
+        <td><a href="{{ x.m.get_absolute_url }}" class="who"><span class="avatar">{{ x.m.initials }}</span><div><b>{{ x.m.name }}</b><span>{{ x.m.role }}</span></div></a></td>
+        <td>{{ x.count }}</td><td>{{ x.complete }}</td>
+        <td><div class="prog"><div class="bar"><i style="width:{{ x.progress }}%"></i><span class="plan" style="left:{{ x.planned }}%" title="Planned {{ x.planned }}%"></span></div><b>{{ x.progress }}%</b></div></td>
+      </tr>{% endif %}{% endfor %}</tbody></table></div>
+  </div>
+  <div class="card"><div class="card-h"><h3>Past Target Date</h3><span class="pill risk">{{ overdue_count }}</span></div>
+    <div class="card-b">{% for g in overdue %}
+      <a class="list-row" href="{{ g.get_absolute_url }}"><div style="min-width:0"><span class="gid">{{ g.goal_id }}</span> <span class="small muted">{{ g.member }}</span>
+        <div class="goal-t" style="font-size:13px;margin-top:4px">{{ g.title }}</div></div><div class="small faint" style="white-space:nowrap">{{ g.target_date|date:"d M Y" }}</div></a>
+    {% empty %}<div class="empty-state">No overdue goals 🎉</div>{% endfor %}</div>
+  </div>
+</div>
+{{ chart|json_script:"chart-data" }}
+{% endblock %}
+{% block scripts %}
+{% load static %}<script src="{% static 'goals/chart.umd.min.js' %}"></script>
+<script>
+const d = JSON.parse(document.getElementById('chart-data').textContent);
+Chart.defaults.animation.onComplete=()=>document.querySelectorAll('.chart-box').forEach(b=>b.classList.add('ready'));
+Chart.defaults.font.family = 'Inter, system-ui'; Chart.defaults.color = '#5d6b7c';
+new Chart(qChart, {type:'bar', data:{labels:['Q1','Q2','Q3','Q4'], datasets:[
+  {label:'Planned', data:d.q_planned, backgroundColor:'#c9d6e3', borderRadius:6, maxBarThickness:38},
+  {label:'Actual', data:d.q_actual, backgroundColor:'#0e9f6e', borderRadius:6, maxBarThickness:38}]},
+  options:{plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8}}},
+    scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'%'},grid:{color:'#eef2f6'}},x:{grid:{display:false}}}}});
+new Chart(sChart, {type:'doughnut', data:{labels:d.status_labels, datasets:[{data:d.status_data,
+  backgroundColor:['#0e9f6e','#2563eb','#d97706','#dc2626','#cbd5e1'], borderWidth:3, borderColor:'#fff'}]},
+  options:{cutout:'68%', plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:8,padding:14}}}}});
+</script>
+{% endblock %}

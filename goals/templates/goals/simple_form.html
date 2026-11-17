@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}{% block crumb %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ title }}</h1></div></div>
+<form method="post" class="card" style="max-width:720px">{% csrf_token %}
+  <div class="form-sec"><div class="grid g2">{% for f in form %}<div class="field" {% if f.name == 'description' %}style="grid-column:1/-1"{% endif %}><label>{{ f.label }}</label>{{ f }}<div class="err">{{ f.errors|striptags }}</div>{% if f.help_text %}<div class="small faint">{{ f.help_text }}</div>{% endif %}</div>{% endfor %}</div></div>
+  <div class="form-sec actions" style="justify-content:flex-end"><a class="btn btn-ghost" href="{{ back }}">Cancel</a><button class="btn btn-primary">Save</button></div>
+</form>
+{% endblock %}

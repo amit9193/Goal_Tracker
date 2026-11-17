@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Org Hierarchy{% endblock %}{% block crumb %}Org Hierarchy{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Org Hierarchy</h1><p>Reporting lines: {% if user.is_superuser %}Super Users → {% endif %}Managers / Project Leads → Team members · {{ count }} people · {{ managers }} manager{{ managers|pluralize }}</p></div>
+  <div class="actions">
+    <input class="input" id="treeSearch" placeholder="Find a person…" style="width:200px">
+    <button type="button" class="btn btn-ghost" onclick="setAll(false)">{% include "icons.html" with i="plus" %}Expand all</button>
+    <button type="button" class="btn btn-ghost" onclick="setAll(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>Collapse all</button>
+  </div>
+</div>
+
+<form method="post" action="{% url 'set_manager' %}" id="mgrForm">{% csrf_token %}<input type="hidden" name="next" value="{% url 'org' %}">
+  <div class="bulkbar" id="bulkbar"><b id="selCount">0 selected</b><span style="opacity:.6">·</span>Reports to
+    <select class="input" name="manager">{% if user.is_superuser %}<option value="">— No manager (top level) —</option>{% endif %}</select>
+    <button class="btn btn-primary" style="height:34px">Apply</button></div>
+  <div id="mgrInputs"></div>
+</form>
+
+<div class="grid" style="grid-template-columns:1fr {% if loose %}280px{% endif %};align-items:start">
+  <div class="card card-b otree" style="overflow-x:auto">
+    {% if supers %}<div class="stage"><span class="stage-l">Stage 1 · Super Users</span>{% for s in supers %}<span class="team-tag"><i style="background:#7c3aed"></i>{{ s.get_full_name|default:s.username }}</span>{% endfor %}</div>{% endif %}
+    {% if tree %}<ul class="root">{% for n in tree %}{% include "goals/_org_node.html" %}{% endfor %}</ul>
+    {% else %}<div class="empty-state">No reporting lines yet. Edit an employee and set “Reports to”, or import a workbook with a Project Lead column.</div>{% endif %}
+  </div>
+  {% if loose %}<div class="card"><div class="card-h"><h3>No manager</h3><span class="pill notstarted">{{ loose|length }}</span></div>
+    <div class="card-b">{% for m in loose %}<div class="list-row"><a class="who" href="{{ m.get_absolute_url }}"><span class="avatar">{{ m.initials }}</span><div><b>{{ m.name }}</b><span>{{ m.role|default:"—" }}</span></div></a><input type="checkbox" class="osel" value="{{ m.pk }}"></div>{% endfor %}
+    <p class="small faint" style="margin:10px 0 0">Tick people and choose who they report to.</p></div></div>{% endif %}
+</div>
+{{ mgr_options|json_script:"mgr-opts" }}
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleNode(b,force){const li=b.closest('li');const c=force===undefined?!li.classList.contains('collapsed'):force;li.classList.toggle('collapsed',c);b.textContent=c?'+':'−';}
+function setAll(c){document.querySelectorAll('.otree .otog:not(.ghost)').forEach(b=>toggleNode(b,c));}
+// search: expand path and highlight
+treeSearch.addEventListener('input',e=>{const q=e.target.value.trim().toLowerCase();document.querySelectorAll('.onode').forEach(n=>{const hit=q&&n.querySelector('b').textContent.toLowerCase().includes(q);n.classList.toggle('hit',hit);
+  if(hit){let li=n.closest('li').parentElement.closest('li');while(li){const b=li.querySelector(':scope>.onode .otog');if(b)toggleNode(b,false);li=li.parentElement.closest('li');}}});});
+// bulk re-assign manager
+const opts=JSON.parse(document.getElementById('mgr-opts').textContent), sel=document.querySelector('#mgrForm select');
+opts.forEach(o=>sel.add(new Option(o[1],o[0])));
+document.querySelectorAll('.osel').forEach(c=>c.addEventListener('change',()=>{const on=[...document.querySelectorAll('.osel:checked')].map(x=>x.value);
+  bulkbar.classList.toggle('show',on.length>0);selCount.textContent=on.length+' selected';
+  mgrInputs.innerHTML=on.map(v=>'<input type="hidden" name="member" value="'+v+'">').join('');}));
+</script>
+{% endblock %}

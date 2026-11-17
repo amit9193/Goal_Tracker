@@ -1,0 +1,11 @@
+<li>
+  <a href="{{ n.t.get_absolute_url }}" class="node" style="--c:{{ n.t.color }}">
+    <span class="tico">{% include "icons.html" with i="team" %}</span>
+    <div><b>{{ n.t.name }}</b><small>{{ n.members|length }} member{{ n.members|length|pluralize }}{% if n.t.lead %} · Lead: {{ n.t.lead.name }}{% endif %}{% if n.children %} · {{ n.children|length }} sub-team{{ n.children|length|pluralize }}{% endif %}</small></div>
+    {% if n.members or n.children %}<button type="button" class="tog" onclick="event.preventDefault();this.closest('li').classList.toggle('collapsed');this.textContent=this.textContent=='−'?'+':'−'">−</button>{% endif %}
+  </a>
+  {% if n.members or n.children %}<ul>
+    {% for x in n.members %}<li><a href="{{ x.m.get_absolute_url }}" class="mnode"><span class="avatar" style="background:{{ n.t.color }}">{{ x.m.initials }}</span><span><b>{{ x.m.name }}</b> <span class="faint small">{{ x.m.role }}</span></span>{% if x.m == n.t.lead %}<span class="lead">LEAD</span>{% endif %}<span class="mp">{{ x.count }} goals · {{ x.progress }}%</span></a></li>{% endfor %}
+    {% for n in n.children %}{% include "goals/_tree_node.html" %}{% endfor %}
+  </ul>{% endif %}
+</li>

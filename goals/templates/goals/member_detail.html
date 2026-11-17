@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ m.name }}{% endblock %}{% block crumb %}Employees / {{ m.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <a class="btn btn-ghost" href="{% url 'people' %}">{% include "icons.html" with i="back" %}All employees</a>
+  <div class="actions"><a class="btn btn-ghost" href="{% url 'member_delete' m.pk %}">{% include "icons.html" with i="trash" %}Delete</a>
+    <a class="btn btn-ghost" href="{% url 'member_edit' m.pk %}">{% include "icons.html" with i="edit" %}Edit</a>
+    <a class="btn btn-primary" href="{% url 'goal_create' %}?member={{ m.pk }}">{% include "icons.html" with i="plus" %}Add Goal</a></div>
+</div>
+<div class="card" style="margin-bottom:18px"><div class="detail-hero">
+  <div class="who"><span class="avatar" style="width:64px;height:64px;font-size:22px;{% if m.team %}background:{{ m.team.color }}{% endif %}">{{ m.initials }}</span>
+    <div><h1 style="margin:0;font-size:24px">{{ m.name }}</h1><span style="font-size:14px">{{ m.role|default:"—" }}</span>
+      <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">{% if m.team %}<a class="team-tag" href="{{ m.team.get_absolute_url }}"><i style="background:{{ m.team.color }}"></i>{{ m.team.name }}</a>{% else %}<span class="pill notstarted">No team</span>{% endif %}
+        {% if m.manager %}<a class="team-tag" href="{{ m.manager.get_absolute_url }}">Reports to · {{ m.manager.name }}</a>{% endif %}{% if m.reports.exists %}<a class="team-tag" href="{% url 'org' %}">{{ m.reports.count }} direct report{{ m.reports.count|pluralize }}</a>{% endif %}{% if m.user %}<span class="team-tag">Login · {{ m.user.username }}</span>{% endif %}
+        {% if m.email %}<a class="team-tag" href="mailto:{{ m.email }}" data-noload>{{ m.email }}</a>{% endif %}{% if m.joined %}<span class="team-tag">Joined {{ m.joined|date:"M Y" }}</span>{% endif %}</div></div></div>
+  <div style="display:flex;gap:10px"><div class="stat-chip"><b>{{ count }}</b><span>Goals</span></div><div class="stat-chip"><b>{{ complete }}</b><span>Completed</span></div>
+    <div class="ring" style="--p:{{ progress }};width:84px;height:84px"><div style="width:66px;height:66px"><div><b style="font-size:18px">{{ progress }}%</b></div></div></div></div>
+</div></div>
+<form method="post" class="card" id="goalsForm">{% csrf_token %}
+  <div class="card-h" style="padding-bottom:14px;border-bottom:1px solid var(--line)"><div><h3>Goals &amp; Quarterly Progress</h3><span class="small muted">Edit values inline · % Achievement updates live · changed cells are highlighted</span></div>
+    <div class="actions">{% if free_goals %}<button type="button" class="btn btn-ghost" data-open="assignModal">{% include "icons.html" with i="target" %}Assign existing</button>{% endif %}
+      <a class="btn btn-ghost" href="{% url 'goal_create' %}?member={{ m.pk }}&next={{ request.path|urlencode }}">{% include "icons.html" with i="plus" %}New goal</a>
+      <button class="btn btn-primary" id="saveAll">{% include "icons.html" with i="check" %}Save changes</button></div></div>
+  {% for g in goals %}
+  <div class="eg">
+    <div class="eg-h">
+      <span class="gid">{{ g.goal_id }}</span>
+      <a href="{{ g.get_absolute_url }}" class="goal-t" style="flex:1">{{ g.title }}</a>
+      <span class="small faint" style="white-space:nowrap">{% include "icons.html" with i="cal" %} {{ g.target_date|date:"d M Y"|default:"—" }}</span>
+      <select class="input eg-status" name="{{ g.pk }}-status" data-orig="{{ g.status }}">{% for s in statuses %}<option {% if s == g.status %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+      <div class="gp-act">
+        <a title="Edit full goal" href="{% url 'goal_edit' g.pk %}?next={{ request.path|urlencode }}">{% include "icons.html" with i="edit" %}</a>
+        <button type="button" title="Remove from employee" onclick="openConfirm('{% url 'goal_unassign' g.pk %}','Remove {{ g.goal_id }} from {{ m.name|escapejs }}?','The goal is kept and can be assigned to someone else.','Remove')">{% include "icons.html" with i="back" %}</button>
+        <button type="button" title="Delete goal" class="danger" onclick="openConfirm('{% url 'goal_delete' g.pk %}','Delete {{ g.goal_id }}?','This permanently deletes the goal and its check-ins.','Delete')">{% include "icons.html" with i="trash" %}</button>
+      </div>
+    </div>
+    <div class="eg-q">
+      {% for q in g.quarters %}<div class="eg-cell" data-g="{{ g.pk }}">
+        <div class="eg-qh"><b>{{ q.q }}</b><span class="pct">—</span></div>
+        <label>Planned %<input class="input" type="number" min="0" max="100" step="0.01" name="{{ g.pk }}-{{ q.q|lower }}_planned" value="{{ q.planned|default_if_none:'' }}" data-orig="{{ q.planned|default_if_none:'' }}"></label>
+        <label>Actual %<input class="input" type="number" min="0" max="100" step="0.01" name="{{ g.pk }}-{{ q.q|lower }}_actual" value="{{ q.actual|default_if_none:'' }}" data-orig="{{ q.actual|default_if_none:'' }}"></label>
+        <div class="bar"><i></i></div>
+      </div>{% endfor %}
+      <div class="eg-sum"><div class="ring" style="--p:{{ g.progress }};width:72px;height:72px"><div style="width:56px;height:56px"><div><b style="font-size:15px">{{ g.progress }}%</b></div></div></div><span class="small muted">Overall</span></div>
+    </div>
+  </div>
+  {% empty %}<div class="empty-state">No goals yet. Create a new goal or assign an existing one.</div>{% endfor %}
+  {% if goals %}<div class="form-sec actions" style="justify-content:flex-end"><span class="small muted" id="dirtyNote" style="margin-right:auto"></span><button type="reset" class="btn btn-ghost">Reset</button><button class="btn btn-primary">Save changes</button></div>{% endif %}
+</form>
+
+<div class="modal" id="assignModal"><form method="post" action="{% url 'goal_assign' %}" class="dlg">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="member_id" value="{{ m.pk }}">
+  <div class="dlg-h"><h3>Assign goals to {{ m.name }}</h3><button type="button" class="x" data-close>&times;</button></div>
+  <div class="dlg-b">{% for g in free_goals %}<label class="list-row" style="cursor:pointer"><span><span class="gid">{{ g.goal_id }}</span> <span class="small">{{ g.title|truncatechars:80 }}</span></span><input type="checkbox" name="goal" value="{{ g.pk }}"></label>{% endfor %}</div>
+  <div class="dlg-f"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">Assign</button></div>
+</form></div>
+<div class="modal" id="confirmModal"><form method="post" class="dlg" id="confirmForm" style="max-width:440px">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+  <div class="dlg-b"><h3 id="confirmTitle" style="margin-bottom:6px"></h3><p class="muted" id="confirmText" style="margin:0"></p></div>
+  <div class="dlg-f"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-danger" id="confirmBtn">Confirm</button></div>
+</form></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openConfirm(url,t,txt,btn){confirmForm.action=url;confirmTitle.textContent=t;confirmText.textContent=txt;confirmBtn.textContent=btn;confirmModal.classList.add('open');}
+const form=document.getElementById('goalsForm');
+function calc(cell){const [p,a]=cell.querySelectorAll('input');const pv=parseFloat(p.value),av=parseFloat(a.value);const pct=cell.querySelector('.pct'),bar=cell.querySelector('.bar i');
+  if(pv>0&&!isNaN(av)){const r=Math.round(av/pv*100);pct.textContent=r+'%';pct.className='pct pill '+(r>=100?'complete':r>=70?'ontrack':'slow');bar.style.width=Math.min(r,100)+'%';}
+  else{pct.textContent='—';pct.className='pct';bar.style.width=0;}}
+function dirty(){let n=0;form.querySelectorAll('[data-orig]').forEach(el=>{const d=String(el.value)!==String(el.dataset.orig)&&!(el.type==='number'&&parseFloat(el.value)===parseFloat(el.dataset.orig));el.classList.toggle('dirty',d);n+=d;});
+  const note=document.getElementById('dirtyNote');if(note)note.textContent=n?n+' unsaved change'+(n>1?'s':''):'';return n;}
+document.querySelectorAll('.eg-cell').forEach(c=>{calc(c);c.addEventListener('input',()=>{calc(c);dirty();});});
+form&&form.addEventListener('change',dirty);
+form&&form.addEventListener('reset',()=>setTimeout(()=>{document.querySelectorAll('.eg-cell').forEach(calc);dirty();}));
+let submitting=false;form&&form.addEventListener('submit',()=>submitting=true);
+window.addEventListener('beforeunload',e=>{if(!submitting&&dirty()){e.preventDefault();e.returnValue='';}});
+</script>
+{% endblock %}

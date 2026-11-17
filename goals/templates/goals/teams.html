@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Teams{% endblock %}{% block crumb %}Teams{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Teams</h1><p>Structure your organisation into teams and sub-teams, and see who belongs where.</p></div>
+  <div class="actions">
+    <a class="btn btn-ghost" href="{% url 'org' %}">{% include "icons.html" with i="tree" %}Org Hierarchy</a>
+    <a class="btn btn-ghost" href="{% url 'people' %}">{% include "icons.html" with i="team" %}Employees</a>
+    {% if user.is_superuser %}<button class="btn btn-primary" data-open="addTeam">{% include "icons.html" with i="plus" %}New Team</button>{% endif %}
+  </div>
+</div>
+
+{% if view == 'tree' %}
+<div class="grid" style="grid-template-columns:1fr 300px;align-items:start">
+  <div class="card card-b tree" style="overflow-x:auto">
+    {% if tree %}<ul>{% for n in tree %}{% include "goals/_tree_node.html" %}{% endfor %}</ul>
+    {% else %}<div class="empty-state">No teams yet. Create your first team to build the org tree.</div>{% endif %}
+  </div>
+  <div class="card"><div class="card-h"><h3>Not in a team</h3><span class="pill notstarted">{{ unassigned|length }}</span></div>
+    <div class="card-b">{% for m in unassigned %}<a class="list-row" href="{{ m.get_absolute_url }}"><div class="who"><span class="avatar">{{ m.initials }}</span><div><b>{{ m.name }}</b><span>{{ m.role }}</span></div></div></a>
+      {% empty %}<div class="small muted">Everyone is assigned 🎉</div>{% endfor %}
+      {% if unassigned %}<a class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:12px" href="{% url 'people' %}?unassigned=1">Assign to teams</a>{% endif %}</div></div>
+</div>
+{% else %}
+<div class="grid g3">{% for c in cards %}
+  <a href="{{ c.t.get_absolute_url }}" class="card member-card" style="border-top:4px solid {{ c.t.color }}">
+    <div class="top"><span class="avatar lg" style="background:{{ c.t.color }}">{% include "icons.html" with i="team" %}</span><div style="flex:1"><b style="font-size:16px;display:block">{{ c.t.name }}</b><span class="small muted">{% if c.t.parent %}Part of {{ c.t.parent.name }}{% else %}Top-level team{% endif %}</span></div></div>
+    <p class="small muted" style="margin:0 0 14px;min-height:20px">{{ c.t.description|truncatechars:110 }}</p>
+    <div style="display:flex;gap:8px;margin-bottom:14px"><div class="stat-chip"><b>{{ c.count }}</b><span>Members</span></div><div class="stat-chip"><b>{{ c.goals }}</b><span>Goals</span></div><div class="stat-chip"><b>{{ c.progress }}%</b><span>Progress</span></div></div>
+    <div class="prog"><div class="bar"><i style="width:{{ c.progress }}%;background:{{ c.t.color }}"></i></div></div>
+    <div style="display:flex;margin-top:14px">{% for m in c.members %}<span class="avatar" style="margin-left:{% if forloop.first %}0{% else %}-8px{% endif %};border:2px solid #fff;background:{{ c.t.color }}">{{ m.initials }}</span>{% endfor %}{% if c.t.lead %}<span class="small muted" style="margin-left:auto;align-self:center">Lead · <b>{{ c.t.lead.name }}</b></span>{% endif %}</div>
+  </a>{% empty %}<div class="card empty-state">No teams yet.</div>{% endfor %}</div>
+{% endif %}
+
+<div class="modal {% if open_modal %}open{% endif %}" id="addTeam"><form method="post" class="dlg">{% csrf_token %}
+  <div class="dlg-h"><h3>Create team</h3><button type="button" class="x" data-close>&times;</button></div>
+  <div class="dlg-b">{% for f in form %}<div class="field"><label>{{ f.label }}</label>{{ f }}<div class="err">{{ f.errors|striptags }}</div></div>{% endfor %}</div>
+  <div class="dlg-f"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">Create team</button></div>
+</form></div>
+{% endblock %}

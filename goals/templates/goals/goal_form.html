@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{% if goal %}Edit {{ goal.goal_id }}{% else %}New Goal{% endif %}{% endblock %}
+{% block crumb %}{% if goal %}Goals / {{ goal.goal_id }} / Edit{% else %}New Goal{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% if goal %}Update {{ goal.goal_id }}{% else %}Create a new goal{% endif %}</h1><p>Targets and actuals are entered as percentage of the goal (0–100).</p></div></div>
+<form method="post" class="card">{% csrf_token %}<input type="hidden" name="next" value="{{ request.GET.next }}">
+  {% if form.non_field_errors %}<div class="form-sec"><div class="msg error">{{ form.non_field_errors }}</div></div>{% endif %}
+  <div class="form-sec"><h4>Ownership</h4><p>Project lead and the team member who owns this goal.</p>
+    <div class="grid g4">
+      <div class="field"><label>{{ form.project_lead.label }}</label>{{ form.project_lead }}</div>
+      <div class="field"><label>{{ form.goal_id.label }}</label>{{ form.goal_id }}<div class="err">{{ form.goal_id.errors|striptags }}</div></div>
+      <div class="field"><label>{{ form.member.label }}</label>{{ form.member }}</div>
+      <div class="field"><label>Role</label>{{ form.role }}</div>
+    </div></div>
+  <div class="form-sec"><h4>Goal definition</h4><p>What the goal is, what it involves, and how success is measured.</p>
+    <div class="field"><label>{{ form.title.label }}</label>{{ form.title }}</div>
+    <div class="grid g2">
+      <div class="field"><label>{{ form.description.label }}</label>{{ form.description }}</div>
+      <div class="field"><label>{{ form.kpi.label }}</label>{{ form.kpi }}<div class="small faint" style="margin-top:4px">One measure per line.</div></div>
+    </div>
+    <div class="grid g3">
+      <div class="field"><label>Start Date</label>{{ form.start_date }}</div>
+      <div class="field"><label>Target Date</label>{{ form.target_date }}<div class="err">{{ form.target_date.errors|striptags }}</div></div>
+      <div class="field"><label>{{ form.status.label }}</label>{{ form.status }}</div>
+    </div></div>
+  <div class="form-sec"><h4>Quarterly targets</h4><p>% Achievement and Variance are calculated automatically.</p>
+    <div class="qgrid">
+      <div class="qbox"><h5>Q1 <span class="faint small" data-q="q1"></span></h5><div class="field"><label>Planned Target %</label>{{ form.q1_planned }}</div><div class="field" style="margin:0"><label>Actual Achieved %</label>{{ form.q1_actual }}</div></div>
+      <div class="qbox"><h5>Q2 <span class="faint small" data-q="q2"></span></h5><div class="field"><label>Planned Target %</label>{{ form.q2_planned }}</div><div class="field" style="margin:0"><label>Actual Achieved %</label>{{ form.q2_actual }}</div></div>
+      <div class="qbox"><h5>Q3 <span class="faint small" data-q="q3"></span></h5><div class="field"><label>Planned Target %</label>{{ form.q3_planned }}</div><div class="field" style="margin:0"><label>Actual Achieved %</label>{{ form.q3_actual }}</div></div>
+      <div class="qbox"><h5>Q4 <span class="faint small" data-q="q4"></span></h5><div class="field"><label>Planned Target %</label>{{ form.q4_planned }}</div><div class="field" style="margin:0"><label>Actual Achieved %</label>{{ form.q4_actual }}</div></div>
+    </div></div>
+  <div class="form-sec actions" style="justify-content:flex-end">
+    <a class="btn btn-ghost" href="{% if request.GET.next %}{{ request.GET.next }}{% elif goal %}{{ goal.get_absolute_url }}{% else %}{% url 'goal_list' %}{% endif %}">Cancel</a>
+    <button class="btn btn-primary">Save goal</button></div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+// Live % Achievement preview (Actual / Planned)
+document.querySelectorAll('[data-q]').forEach(el=>{
+  const q=el.dataset.q, p=document.getElementById('id_'+q+'_planned'), a=document.getElementById('id_'+q+'_actual');
+  const upd=()=>{const pv=parseFloat(p.value), av=parseFloat(a.value); el.textContent=(pv>0&&!isNaN(av))?Math.round(av/pv*100)+'% achieved':'';};
+  p.addEventListener('input',upd); a.addEventListener('input',upd); upd();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Confirm delete{% endblock %}{% block crumb %}Delete{% endblock %}
+{% block content %}
+<div class="card card-b" style="max-width:520px">
+  <h3 style="margin-bottom:8px">Delete this {{ kind }}?</h3><p class="muted"><b>{{ obj }}</b> will be permanently removed.</p>
+  <form method="post" class="actions">{% csrf_token %}<input type="hidden" name="next" value="{{ request.GET.next }}"><a class="btn btn-ghost" href="{{ back }}">Cancel</a><button class="btn btn-danger">Delete</button></form>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+<li>
+  <div class="onode {% if n.children %}has-kids{% endif %}" style="--c:{% if n.m.team %}{{ n.m.team.color }}{% elif n.children %}#0b1f2e{% else %}#0e9f6e{% endif %}">
+    {% if n.children %}<button type="button" class="otog" aria-label="Toggle" onclick="toggleNode(this)">−</button>{% else %}<span class="otog ghost"></span>{% endif %}
+    <a href="{{ n.m.get_absolute_url }}" class="who"><span class="avatar">{{ n.m.initials }}</span>
+      <div><b>{{ n.m.name }}</b><span>{{ n.m.role|default:"—" }}</span></div></a>
+    {% if n.children %}<span class="tag-mgr">Manager · {{ n.team_size }}</span>{% endif %}
+    <span class="ostat">{{ n.count }} goal{{ n.count|pluralize }}</span>
+    <div class="prog" style="min-width:110px;width:110px"><div class="bar"><i style="width:{{ n.progress }}%"></i></div><b>{{ n.progress }}%</b></div>
+    <input type="checkbox" class="osel" value="{{ n.m.pk }}" title="Select to re-assign">
+  </div>
+  {% if n.children %}<ul>{% for n in n.children %}{% include "goals/_org_node.html" %}{% endfor %}</ul>{% endif %}
+</li>

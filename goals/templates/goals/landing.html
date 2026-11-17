@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Turn ambitions into measurable outcomes{% endblock %}
+{% block bodyclass %}lp{% endblock %}
+{% block body %}
+<header class="lp-nav">
+  <a href="{% url 'landing' %}" class="logo" style="padding:0"><span class="logo-mark">{% include "icons.html" with i="logo" %}</span>KPI Tracker</a>
+  <nav class="links"><a href="#features">Features</a><a href="#how">How it works</a><a href="#method">Methodology</a></nav>
+  <div class="actions">
+    {% if user.is_authenticated %}<a class="btn btn-primary" href="{% url 'dashboard' %}">Open Dashboard {% include "icons.html" with i="arrow" %}</a>
+    {% else %}<a class="btn btn-outline-light" href="{% url 'login' %}">Sign in</a><a class="btn btn-primary" href="{% url 'login' %}">Get started</a>{% endif %}
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-in">
+    <div>
+      <span class="eyebrow">● Performance &amp; Development Goals · FY 2026–27</span>
+      <h1>Turn ambitions into <em>measurable outcomes.</em></h1>
+      <p class="lead">KPI Tracker gives your team one place to set development goals, define clear KPIs, plan quarterly targets and track what's actually achieved — with variance visible the moment it appears.</p>
+      <div class="cta">
+        <a class="btn btn-primary btn-lg" href="{% url 'dashboard' %}">Start tracking {% include "icons.html" with i="arrow" %}</a>
+        <a class="btn btn-outline-light btn-lg" href="#how">See how it works</a>
+      </div>
+      <div class="hero-stats">
+        <div><b>{{ stat_goals }}</b><span>Active goals</span></div>
+        <div><b>{{ stat_members }}</b><span>Team members</span></div>
+        <div><b>4</b><span>Quarterly checkpoints</span></div>
+        <div><b>{{ stat_complete }}</b><span>Goals completed</span></div>
+      </div>
+    </div>
+    <div style="position:relative">
+      <div class="mock">
+        <div class="row"><b style="font-family:var(--fd)">Team Goal Health</b><span class="pill ontrack">Q2 in progress</span></div>
+        <div class="mini"><div><small>On Track</small><b>78%</b></div><div><small>Avg. Achievement</small><b>92%</b></div><div><small>Variance</small><b style="color:var(--amber)">-6%</b></div></div>
+        <svg viewBox="0 0 400 110" style="width:100%;height:110px">
+          <defs><linearGradient id="gg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#12b981" stop-opacity=".3"/><stop offset="1" stop-color="#12b981" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0 95 L100 72 L200 50 L300 30 L400 12" stroke="#0b1f2e" stroke-opacity=".25" stroke-dasharray="5 5" fill="none" stroke-width="2"/>
+          <path d="M0 98 L100 78 L200 58 L300 40 L400 22 L400 110 L0 110Z" fill="url(#gg)"/>
+          <path d="M0 98 L100 78 L200 58 L300 40 L400 22" stroke="#0e9f6e" fill="none" stroke-width="3" stroke-linecap="round"/>
+          <g fill="#0e9f6e"><circle cx="100" cy="78" r="4"/><circle cx="200" cy="58" r="4"/><circle cx="300" cy="40" r="4"/></g>
+        </svg>
+        <div class="goal"><span class="avatar" style="width:28px;height:28px;font-size:11px">ND</span><span class="t">DP-600 Certification</span><span class="pill complete">Complete</span></div>
+        <div class="goal"><span class="avatar" style="width:28px;height:28px;font-size:11px;background:#2563eb">RB</span><span class="t">Generative AI Prototype</span><span class="pill ontrack">On Track</span></div>
+        <div class="goal"><span class="avatar" style="width:28px;height:28px;font-size:11px;background:#d97706">VM</span><span class="t">Stakeholder Communication</span><span class="pill slow">Slow</span></div>
+      </div>
+      <div class="float-card a"><span class="kpi"><span class="ico green" style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center">{% include "icons.html" with i="check" %}</span></span><div><b>Q1 target met</b><div class="small muted">25% planned · 25% achieved</div></div></div>
+      <div class="float-card b"><span class="ico amber" style="width:30px;height:30px;border-radius:8px;display:grid;place-items:center">{% include "icons.html" with i="trend" %}</span><b>+18% this quarter</b></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="features"><div class="sec-in">
+  <div class="sec-head"><span class="k">Built for growth</span><h2>Everything a goal cycle needs — nothing it doesn't</h2>
+    <p>Designed around how high-performing teams actually run development goals: clear intent, measurable success, and honest quarterly check-ins.</p></div>
+  <div class="grid g3">
+    <div class="feat"><div class="ico green">{% include "icons.html" with i="target" %}</div><h3>Goals with clear intent</h3><p>Capture each goal with a description of what it covers and why it matters — from certifications to delivery accelerators.</p></div>
+    <div class="feat"><div class="ico blue">{% include "icons.html" with i="check" %}</div><h3>KPIs that define success</h3><p>Every goal carries a concrete success measure, so reviews are about evidence — scores, sessions held, pipelines shipped.</p></div>
+    <div class="feat"><div class="ico amber">{% include "icons.html" with i="cal" %}</div><h3>Quarterly planned vs actual</h3><p>Set a planned target for Q1–Q4 and record what was actually achieved. Achievement % is calculated automatically.</p></div>
+    <div class="feat"><div class="ico ink">{% include "icons.html" with i="trend" %}</div><h3>Variance &amp; status signals</h3><p>Instantly see which goals are Complete, On Track or Slow — and where the gap between plan and reality is widening.</p></div>
+    <div class="feat"><div class="ico green">{% include "icons.html" with i="team" %}</div><h3>Team-wide visibility</h3><p>Roll up progress per team member and role. Managers spot who needs support before the review, not after.</p></div>
+    <div class="feat"><div class="ico blue">{% include "icons.html" with i="sheet" %}</div><h3>Excel in, Excel out</h3><p>Import your existing Goal Tracker workbook as-is and export back to the same layout, formulas included.</p></div>
+  </div>
+</div></section>
+
+<section class="sec band" id="how"><div class="sec-in">
+  <div class="sec-head"><span class="k">How it works</span><h2>Set. Track. Review.</h2><p>A simple rhythm that turns annual goals into quarterly momentum.</p></div>
+  <div class="steps">
+    <div class="step"><h3>Set meaningful goals</h3><p>Agree each goal with its owner: the description, a measurable KPI, a start date and a target date.</p></div>
+    <div class="step"><h3>Plan quarterly targets</h3><p>Break the goal into planned progress for each quarter so expectations are explicit from day one.</p></div>
+    <div class="step"><h3>Review &amp; recalibrate</h3><p>Log actual achievement every quarter. Variance and status highlight where to coach, unblock or celebrate.</p></div>
+  </div>
+</div></section>
+
+<section class="sec" id="method"><div class="sec-in split">
+  <div><span class="sec-head" style="text-align:left;margin:0"><span class="k">Transparent methodology</span></span>
+    <h2>The same formulas your spreadsheet uses — applied consistently</h2>
+    <p class="muted" style="font-size:16px">No black boxes. KPI Tracker follows the exact calculation rules of your Goal Tracker workbook, so numbers always reconcile.</p>
+    <ul class="checks">
+      <li>{% include "icons.html" with i="check" %}Achievement % = Actual Achieved ÷ Planned Target, per quarter</li>
+      <li>{% include "icons.html" with i="check" %}Variance = Planned − Actual, flagged when you fall behind</li>
+      <li>{% include "icons.html" with i="check" %}Status: Not Started · On Track · Slow · At Risk · Complete</li>
+    </ul></div>
+  <div class="formula">
+    <div class="c">// Quarterly achievement — per goal</div>
+    <div><span class="k">achievement</span> = actual / planned</div>
+    <div><span class="k">variance</span> &nbsp;&nbsp;&nbsp;= planned − actual</div><br>
+    <div class="c">// Example · G-018 Generative AI PoC</div>
+    <div>Q1 planned <span class="n">25%</span> · actual <span class="n">25%</span> → <span class="k">100%</span></div>
+    <div>Q2 planned <span class="n">50%</span> · actual <span class="n">40%</span> → <span class="k">80%</span> · var <span class="n">10</span></div>
+  </div>
+</div></section>
+
+<section class="sec band"><div class="quote">
+  <blockquote>“A goal without a measure is a wish. A measure without a review is a report. KPI Tracker gives you both — every quarter.”</blockquote>
+  <div class="muted">Built for engineering, BI and delivery teams who grow on purpose</div>
+</div></section>
+
+<section class="sec"><div class="sec-in"><div class="cta-band">
+  <div><h2>Ready to climb?</h2><p>Your team's goals, KPIs and quarterly progress — in one professional workspace.</p></div>
+  <a class="btn btn-light btn-lg" href="{% url 'dashboard' %}">Go to dashboard {% include "icons.html" with i="arrow" %}</a>
+</div></div></section>
+
+<footer class="lp-foot"><span>© {% now "Y" %} KPI Tracker · Goal Tracker</span><span>Set goals · Measure progress · Grow together</span></footer>
+{% endblock %}

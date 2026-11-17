@@ -1,0 +1,42 @@
+{% extends "base.html" %}{% load goal_tags %}
+{% block title %}{{ g.goal_id }}{% endblock %}{% block crumb %}Goals / {{ g.goal_id }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <a class="btn btn-ghost" href="{% url 'goal_list' %}">{% include "icons.html" with i="back" %}All goals</a>
+  <div class="actions"><a class="btn btn-ghost" href="{% url 'goal_delete' g.pk %}">{% include "icons.html" with i="trash" %}Delete</a><a class="btn btn-primary" href="{% url 'goal_edit' g.pk %}">{% include "icons.html" with i="edit" %}Edit / Update Progress</a></div>
+</div>
+<div class="card" style="margin-bottom:18px">
+  <div class="detail-hero">
+    <div style="flex:1;min-width:280px"><span class="gid">{{ g.goal_id }}</span> <span class="pill {{ g.status_class }}">{{ g.status }}</span>
+      <h1>{{ g.title|default:"Goal not yet defined" }}</h1>
+      {% if g.member %}<div class="who" style="margin-top:18px"><span class="avatar lg">{{ g.member.initials }}</span><div><a href="{{ g.member.get_absolute_url }}"><b style="font-size:15px">{{ g.member.name }}</b></a><span>{{ g.role }}{% if g.member.team %} · {{ g.member.team.name }}{% endif %}</span></div></div>{% endif %}
+    </div>
+    <div class="ring" style="--p:{{ g.progress }}"><div><div><b>{{ g.progress }}%</b><span>achieved</span></div></div></div>
+  </div>
+  <div class="meta">
+    <div><small>Project Lead</small><b>{{ g.project_lead|default:"—" }}</b></div>
+    <div><small>Start Date</small><b>{{ g.start_date|date:"d M Y"|default:"—" }}</b></div>
+    <div><small>Target Date</small><b>{{ g.target_date|date:"d M Y"|default:"—" }}</b></div>
+    <div><small>Planned to Date</small><b>{{ g.total_planned|pct }}</b></div>
+    <div><small>Achieved to Date</small><b>{{ g.total_actual|pct }}</b></div>
+  </div>
+</div>
+<div class="grid g2" style="margin-bottom:18px">
+  <div class="card"><div class="card-h"><h3>Goal Description</h3></div><div class="card-b" style="color:#334155">{{ g.description|default:"—"|linebreaks }}</div></div>
+  <div class="card"><div class="card-h"><h3>Success Measure / KPI</h3></div><div class="card-b"><ul class="kpi-list">{% for b in g.kpi|bullets %}<li>{{ b }}</li>{% empty %}<li class="faint">No KPI defined</li>{% endfor %}</ul></div></div>
+</div>
+<div class="card"><div class="card-h"><h3>Quarterly Achievement</h3><span class="small muted">% Achievement = Actual ÷ Planned · Variance = Planned − Actual</span></div>
+  <div class="card-b"><div class="qcards">{% for q in g.quarters %}
+    <div class="qcard"><div class="h"><b>{{ q.q }}</b>{% if q.pct is not None %}<span class="pill {% if q.pct >= 100 %}complete{% elif q.pct >= 70 %}ontrack{% else %}slow{% endif %}">{{ q.pct|pct }}</span>{% else %}<span class="pill notstarted">—</span>{% endif %}</div>
+      <div class="bar"><i style="width:{% if q.pct %}{% if q.pct > 100 %}100{% else %}{{ q.pct|floatformat:0 }}{% endif %}{% else %}0{% endif %}%"></i></div>
+      <dl><dt>Planned Target</dt><dd>{{ q.planned|pct }}</dd><dt>Actual Achieved</dt><dd>{{ q.actual|pct }}</dd>
+        <dt>Variance</dt><dd class="{% if q.variance > 0 %}var-pos{% else %}var-ok{% endif %}">{% if q.variance is not None %}{{ q.variance|floatformat:"-1" }} pts{% else %}—{% endif %}</dd></dl>
+    </div>{% endfor %}</div></div>
+</div>
+<div class="card" style="margin-top:18px"><div class="card-h"><h3>Check-ins &amp; Progress Notes</h3><span class="pill notstarted">{{ checkins|length }}</span></div>
+  <div class="card-b grid g2" style="align-items:start">
+    <form method="post">{% csrf_token %}<div class="field">{{ form.note }}<div class="err">{{ form.note.errors|striptags }}</div></div><button class="btn btn-primary">Post check-in</button></form>
+    <ul class="tl">{% for c in checkins %}<li><div class="h"><b>{{ c.author }}</b> · {{ c.created|timesince }} ago</div><div style="margin-top:4px">{{ c.note|linebreaksbr }}</div></li>{% empty %}<li class="small muted">No check-ins yet. Log progress, blockers or next steps.</li>{% endfor %}</ul>
+  </div></div>
+<p class="small faint" style="margin-top:14px">Last updated {{ g.updated_at|date:"d M Y, H:i" }}</p>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ t.name }}{% endblock %}{% block crumb %}Teams / {{ t.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <a class="btn btn-ghost" href="{% url 'teams' %}">{% include "icons.html" with i="back" %}All teams</a>
+  <div class="actions">
+    <a class="btn btn-ghost" href="{% url 'goal_list' %}?team={{ t.pk }}">{% include "icons.html" with i="target" %}Team goals</a>
+    <a class="btn btn-ghost" href="{% url 'team_delete' t.pk %}">{% include "icons.html" with i="trash" %}Delete</a>
+    <a class="btn btn-ghost" href="{% url 'team_edit' t.pk %}">{% include "icons.html" with i="edit" %}Edit</a>
+    <button class="btn btn-primary" data-open="addToTeam">{% include "icons.html" with i="plus" %}Add Member</button>
+  </div>
+</div>
+<div class="card" style="margin-bottom:18px;border-top:4px solid {{ t.color }}"><div class="detail-hero">
+  <div style="flex:1;min-width:280px">
+    <div class="who"><span class="avatar lg" style="background:{{ t.color }}">{% include "icons.html" with i="team" %}</span><div><h1 style="margin:0;font-size:24px">{{ t.name }}</h1>
+      <span>{% if t.parent %}Part of <a href="{{ t.parent.get_absolute_url }}" style="color:var(--brand);font-weight:600">{{ t.parent.name }}</a>{% else %}Top-level team{% endif %}{% if t.lead %} · Lead: <b>{{ t.lead.name }}</b>{% endif %}</span></div></div>
+    {% if t.description %}<p class="muted" style="margin:14px 0 0;max-width:720px">{{ t.description }}</p>{% endif %}
+    {% if subteams %}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">{% for s in subteams %}<a class="team-tag" href="{{ s.get_absolute_url }}"><i style="background:{{ s.color }}"></i>{{ s.name }}</a>{% endfor %}</div>{% endif %}
+  </div>
+  <div style="display:flex;gap:10px"><div class="stat-chip"><b>{{ rows|length }}</b><span>Members</span></div><div class="stat-chip"><b>{{ goal_count }}</b><span>Goals</span></div><div class="stat-chip"><b>{{ complete }}</b><span>Completed</span></div>
+    <div class="ring" style="--p:{{ progress }};width:84px;height:84px"><div style="width:66px;height:66px"><div><b style="font-size:18px">{{ progress }}%</b></div></div></div></div>
+</div></div>
+
+<div class="card"><div class="card-h"><h3>Members</h3></div>
+  <div class="tbl-wrap" style="margin-top:12px"><table class="tbl">
+    <thead><tr><th>Employee</th><th>Email</th><th>Goals</th><th>Completed</th><th style="width:200px">Progress</th><th></th></tr></thead>
+    <tbody>{% for r in rows %}<tr>
+      <td><a href="{{ r.m.get_absolute_url }}" class="who"><span class="avatar" style="background:{{ t.color }}">{{ r.m.initials }}</span><div><b>{{ r.m.name }} {% if r.m == t.lead %}<span class="pill slow" style="font-size:10.5px">Lead</span>{% endif %}</b><span>{{ r.m.role }}</span></div></a></td>
+      <td class="small muted">{{ r.m.email|default:"—" }}</td><td>{{ r.count }}</td><td>{{ r.complete }}</td>
+      <td><div class="prog"><div class="bar"><i style="width:{{ r.progress }}%"></i></div><b>{{ r.progress }}%</b></div></td>
+      <td><form method="post" action="{% url 'assign_team' %}">{% csrf_token %}<input type="hidden" name="member" value="{{ r.m.pk }}"><input type="hidden" name="team" value=""><input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-ghost" style="height:32px">Remove</button></form></td>
+    </tr>{% empty %}<tr><td colspan="6"><div class="empty-state">No members yet. Use “Add Member” to assign employees.</div></td></tr>{% endfor %}</tbody>
+  </table></div></div>
+
+<div class="modal" id="addToTeam"><form method="post" action="{% url 'assign_team' %}" class="dlg">{% csrf_token %}
+  <input type="hidden" name="team" value="{{ t.pk }}"><input type="hidden" name="next" value="{{ request.path }}">
+  <div class="dlg-h"><h3>Add members to {{ t.name }}</h3><button type="button" class="x" data-close>&times;</button></div>
+  <div class="dlg-b">
+    <input class="input" placeholder="Filter employees…" oninput="const q=this.value.toLowerCase();document.querySelectorAll('.pick').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')" style="margin-bottom:12px">
+    {% for m in available %}<label class="list-row pick" style="cursor:pointer"><span class="who"><span class="avatar">{{ m.initials }}</span><span><b>{{ m.name }}</b><span>{{ m.role }}{% if m.team %} · currently in {{ m.team.name }}{% endif %}</span></span></span><input type="checkbox" name="member" value="{{ m.pk }}"></label>
+    {% empty %}<div class="small muted">All employees are already in this team.</div>{% endfor %}
+    <p class="small faint" style="margin:12px 0 0">New employee? <a href="{% url 'people' %}?team={{ t.pk }}" style="color:var(--brand);font-weight:600">Create one</a> with this team pre-selected.</p>
+  </div>
+  <div class="dlg-f"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">Add to team</button></div>
+</form></div>
+{% endblock %}

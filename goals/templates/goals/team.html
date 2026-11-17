@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load goal_tags %}
+{% block title %}Team{% endblock %}{% block crumb %}Team{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Team</h1><p>Goals and overall achievement by team member.</p></div>
+  <form method="post" class="actions">{% csrf_token %}{{ form.name.as_widget }}{{ form.role.as_widget }}<button class="btn btn-primary">{% include "icons.html" with i="plus" %}Add member</button></form>
+</div>
+<div class="grid g3">{% for r in rows %}
+  <div class="card member-card">
+    <div class="top"><span class="avatar lg">{{ r.m.initials }}</span><div style="flex:1"><b style="font-size:15px;display:block">{{ r.m.name }}</b><span class="small muted">{{ r.m.role|default:"—" }}</span></div>
+      <a class="faint" title="Remove" href="{% url 'member_delete' r.m.pk %}" style="width:18px">{% include "icons.html" with i="trash" %}</a></div>
+    <div class="prog"><div class="bar"><i style="width:{{ r.progress }}%"></i></div><b>{{ r.progress }}%</b></div>
+    <div class="stats">{% for s, c in r.counts %}<span class="pill {% if s == 'Complete' %}complete{% elif s == 'On Track' %}ontrack{% elif s == 'Slow' %}slow{% elif s == 'At Risk' %}risk{% else %}notstarted{% endif %}">{{ c }} {{ s }}</span>{% empty %}<span class="pill notstarted">No goals yet</span>{% endfor %}</div>
+    <ul>{% for g in r.goals %}<li><a href="{{ g.get_absolute_url }}"><span class="gid">{{ g.goal_id }}</span> {{ g.title }}</a><b class="small">{{ g.progress }}%</b></li>{% endfor %}</ul>
+    <a class="btn btn-ghost" style="margin-top:14px;width:100%;justify-content:center" href="{% url 'goal_create' %}?member={{ r.m.pk }}">{% include "icons.html" with i="plus" %}Add goal</a>
+  </div>{% endfor %}</div>
+{% endblock %}
