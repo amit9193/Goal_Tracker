@@ -25,7 +25,11 @@ SECRET_KEY = "django-insecure-5&5qn3#iqnnr7rhfurnburi4k69@g33z&q(pqvl*w*6bt*rv$-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    "goal-tracker-jtlf.onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
 
 
 # Application definition
